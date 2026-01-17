@@ -36,7 +36,7 @@ router.delete('/:id', async (req, res) => {
   const existing = await repo.getMemberById(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Not found' });
   await repo.deleteMember(req.params.id);
-  res.status(204).end();
+  res.status(200).json({ success: true, id: req.params.id });
 });
 
 module.exports = router;

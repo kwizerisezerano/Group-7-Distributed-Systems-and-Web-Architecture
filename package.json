@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "benchmark": "node scripts/benchmark.js",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.js",
+    "dev": "nodemon src/index.js"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +19,9 @@
     "morgan": "^1.10.0",
     "mysql2": "^3.6.0",
     "dotenv": "^16.3.1"
+  }
+  ,
+  "devDependencies": {
+    "nodemon": "^2.0.22"
   }
 }

@@ -47,7 +47,7 @@ router.delete('/:id', async (req, res) => {
   const loan = await repo.getLoanById(req.params.id);
   if (!loan) return res.status(404).json({ error: 'not found' });
   await repo.deleteLoan(req.params.id);
-  res.status(204).end();
+  res.status(200).json({ success: true, id: req.params.id });
 });
 
 module.exports = router;
