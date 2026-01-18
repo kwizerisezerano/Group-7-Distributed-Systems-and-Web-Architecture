@@ -1,63 +1,138 @@
-# Group-7-Distributed-Systems-and-Web-Architecture
-Group 7 Distributed Systems and Web Architecture
 
-## Library API (Project folder added)
 
-This repository now contains a small Library Management RESTful API in the `src/` folder. The API uses MySQL (MariaDB) for persistence and includes migration SQL and scripts.
+# Assignment — Library Management RESTful API (Answer format)
 
-Quick setup (PowerShell, Windows + XAMPP/MariaDB):
+This document answers the assignment: "Design a complete RESTful API for a library management system. Implement all CRUD operations. Analyze your API against Richardson Maturity Model levels. Calculate API response times and caching effectiveness." Below We  provide the required deliverables, how we run the project, what we  implemented, and how the system meets the assignment criteria.
 
-1. Change to the project folder and install Node dependencies:
+## 1) Assignment brief (what we  build)
+- Build a RESTful API for a library that manages Books, Authors, Members and Loans(borrow).
+- Use HTTP verbs correctly for CRUD and return appropriate status codes.
+- Add persistence (MySQL/MariaDB) with migrations.
+- Support HTTP caching (ETag + Cache-Control) and measure cache effectiveness.
+- Provide documentation and benchmark scripts.
+
+## 2) What we implemented (short answer)
+- Full CRUD endpoints for `books`, `authors`, `members`, and `loans` in `src/routes/`.
+- MySQL persistence using `mysql2` with `src/data/db.js` and `src/data/repo.js` (transactions for loaning/returning books).
+- Migration SQL in `sql/create_library.sql` and runner `scripts/migrate.js`.
+- ETag-based conditional GET handling and `Cache-Control` headers on read endpoints (see `src/routes/books.js`, `src/routes/authors.js`).
+- `scripts/benchmark.js` to measure cold latency, conditional latency, 304 hit-rate and estimated bytes saved.
+
+## 3) How to run (PowerShell, step-by-step)
 
 ```powershell
 cd "C:\Users\LabStudent\Desktop\kwizera assignment\Group-7-Distributed-Systems-and-Web-Architecture"
-npm install
-```
-
-2. Configure environment (XAMPP/MariaDB default `root` user with empty password):
-
-Option A — create a `.env` file from the example (recommended):
-
-```powershell
-Copy-Item .\.env.example .\.env
-# Then edit .env if needed. The example uses an empty DB_PASSWORD for XAMPP default installs.
-```
-
-Option B — set environment variables for the current PowerShell session (temporary):
-
-```powershell
 $env:DB_HOST='127.0.0.1'
 $env:DB_PORT='3306'
 $env:DB_USER='root'
 $env:DB_PASSWORD=''
 $env:DB_NAME='library'
-```
-
-3. Run migrations to create the `library` database and tables:
-
-```powershell
+npm install
 npm run migrate
-# or: node scripts/migrate.js
-```
-
-4. Start the API server:
-
-```powershell
 npm start
 ```
 
-5. Run the benchmark (optional):
+## 4) Endpoints (concise list)
+
+- GET `/` — service entry with links.
+- Books: `GET /books`, `GET /books/:id`, `POST /books`, `PUT/PATCH /books/:id`, `DELETE /books/:id`.
+- Authors: `GET /authors`, `GET /authors/:id`, `POST /authors`, `PUT/PATCH /authors/:id`, `DELETE /authors/:id`.
+- Members: `GET /members`, `POST /members`, `GET/PUT/DELETE /members/:id`.
+- Loans: `GET /loans`, `POST /loans` (body: { bookId, memberId }), `POST /loans/:id/return`, `DELETE /loans/:id`.
+
+Refer to `src/routes/` for exact status codes and validation logic.
+
+## 5) Richardson Maturity Model (direct answer)
+
+- Level 1 (Resources): Achieved — separate URIs for `books`, `authors`, `members`, `loans`.
+- Level 2 (HTTP verbs): Achieved — uses GET/POST/PUT/PATCH/DELETE with standard status codes (200, 201, 400, 404, 409, 500). `Location` header set on create.
+- Level 3 (HATEOAS): Partially achieved — responses include minimal `links` objects. To fully achieve Level 3 (recommended next step), adopt a formal hypermedia format (HAL/JSON-LD/Siren) and include actionable controls (e.g., `return` action for loans with method POST and URI) in responses.
+
+Files that demonstrate RMM choices: `src/routes/*.js` (link generation) and `src/index.js` (routing).
+
+## 6) Caching & measurement (direct answer + how to reproduce)
+
+- Implementation: `ETag` is computed as an MD5 of the JSON body and returned on GET responses. `Cache-Control` is set for list endpoints.
+- Behavior: server checks `If-None-Match` and returns `304 Not Modified` when unchanged.
+
+To measure caching effectiveness:
+
+1. Start server (`npm start`).
+2. Run the benchmark script:
 
 ```powershell
 npm run benchmark
 ```
 
-Notes:
-- The DB client loads `.env` automatically via `dotenv` and falls back to sensible defaults (root user, empty password) which match a common XAMPP local setup.
-- You can also apply the SQL directly with the MySQL CLI:
+What the benchmark reports (definitions):
+- cold_avg: average latency (ms) of non-conditional GETs.
+- cond_avg: average latency (ms) of conditional GETs using `If-None-Match`.
+- savings_pct = ((cold_avg - cond_avg) / cold_avg) * 100.
+- cache_hit_rate = (304 responses / conditional requests) * 100.
 
+## 7) Files changed / important locations (short)
+- `src/index.js` — app entry.
+- `src/routes/books.js`, `src/routes/authors.js`, `src/routes/members.js`, `src/routes/loans.js` — endpoints & ETag logic.
+- `src/data/db.js`, `src/data/repo.js` — DB client and queries (transactional loan logic).
+- `sql/create_library.sql` — schema.
+- `scripts/migrate.js` — migration runner.
+- `scripts/benchmark.js` — benchmarking tool.
+
+## 8) Example commands (quick)
+
+Get service info:
 ```powershell
-mysql -h 127.0.0.1 -P 3306 -u root -p < .\sql\create_library.sql
+Invoke-RestMethod http://localhost:3000/
 ```
 
-If you want, I can also add a `.gitignore` entry for `.env` and commit these changes for you.
+Create author:
+```powershell
+Invoke-RestMethod -Uri http://localhost:3000/authors -Method POST -Body (ConvertTo-Json @{ name = 'Homer' }) -ContentType 'application/json'
+```
+
+Conditional GET example (PowerShell/curl):
+```powershell
+curl -i http://localhost:3000/books
+# copy ETag header value
+curl -i -H "If-None-Match: <etag-value>" http://localhost:3000/books
+# expect 304 when unchanged
+```
+
+## 9) Next steps I suggest (short answers)
+
+- Optional: Add integration tests (Jest + supertest) to validate 200 vs 304 behavior.
+- Optional: Upgrade HATEOAS to HAL/JSON-LD for full RMM Level 3.
+- Optional: Add CI to run migrations and tests, and publish benchmark artifacts.
+
+---
+
+## Example responses — 200 vs 304
+
+Below are short, realistic examples showing the difference between a normal 200 OK response and a 304 Not Modified when the client supplies a matching `If-None-Match` header.
+
+1) Successful GET (200 OK)
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+ETag: "d41d8cd98f00b204e9800998ecf8427e"
+Cache-Control: public, max-age=60
+
+[
+	{ "id": "1", "title": "The Odyssey", "authorId": "a1" },
+	{ "id": "2", "title": "Iliad", "authorId": "a2" }
+]
+
+2) Conditional GET when unchanged (304 Not Modified)
+
+HTTP/1.1 304 Not Modified
+ETag: "d41d8cd98f00b204e9800998ecf8427e"
+Cache-Control: public, max-age=60
+
+(no response body)
+
+---
+
+If you want, I will now:
+- append measured benchmark output to this README after you paste the `npm run benchmark` output here, and
+- optionally extend the README with more sample responses or add a short integration test that verifies this behavior.
+
