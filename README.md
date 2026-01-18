@@ -130,9 +130,4 @@ Cache-Control: public, max-age=60
 
 (no response body)
 
----
-
-If you want, I will now:
-- append measured benchmark output to this README after you paste the `npm run benchmark` output here, and
-- optionally extend the README with more sample responses or add a short integration test that verifies this behavior.
 
