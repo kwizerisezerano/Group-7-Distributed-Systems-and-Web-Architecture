@@ -1,3 +1,11 @@
+GROUP7-MEMBERS	
+*********************************
+FULL NAMES				REG NUMBER
+**********************************
+KWIZERISEZERANO			25093253
+INGABIRE ERNESTINE		25093887
+ISHIMWE DORCAS			25093876
+UMULISA REDEMPTA		2409001195
 
 
 # Assignment — Library Management RESTful API (Answer format)
